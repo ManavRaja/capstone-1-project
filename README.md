@@ -4,7 +4,7 @@
 - Make sure you are in the respective directories before running the commands
 
 #### Backend
-- `uv pip sync uv.lock` to install dependencies for the backend
+- `uv sync` to install dependencies for the backend
   - Make sure you create a venv first.
 
 #### Frontend
