@@ -1,20 +1,19 @@
 from functools import lru_cache
 from pathlib import Path
-from typing import Optional
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     # JWT Stuff
-    JWT_SECRET_KEY: Optional[str] = None
-    JWT_ALGORITHM: Optional[str] = None
-    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int = 10080
+    JWT_SECRET_KEY: str
+    JWT_ALGORITHM: str
+    JWT_ACCESS_TOKEN_EXPIRE_MINUTES: int
 
     # MongoDB Stuff
-    MONGO_URI: Optional[str] = None
-    DB_NAME: Optional[str] = None
-    USERS_COLLECTION: str = "Users"
+    MONGO_URI: str
+    DB_NAME: str
+    USERS_COLLECTION: str
 
     # Configure code to read from .env file in the backend dir
     model_config = SettingsConfigDict(
