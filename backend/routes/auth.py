@@ -3,12 +3,12 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status, Form, Response
 from fastapi.security import OAuth2PasswordRequestForm
-from models import Token, TokenData, User, UserInDB, UserCreate
+from backend.models import User
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from settings import get_settings
+from backend.settings import get_settings
 
-from helpers.helper_auth import get_password_hash, authenticate_user, create_access_token, get_current_user
+from backend.helpers.helper_auth import get_password_hash, authenticate_user, create_access_token, get_current_user
 
 
 settings = get_settings()
