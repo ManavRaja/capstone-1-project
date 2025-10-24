@@ -36,7 +36,7 @@ router = APIRouter()
 async def register_user(
     username: Annotated[str, Form(..., min_length=5, max_length=35)],
     password: Annotated[str, Form(..., min_length=15)],
-    email: Annotated[str, Form(..., regex="^[a-z0-9]+[\._]?[a-z0-9]+[@]\w+[.]\w{2,3}$")],
+    email: Annotated[str, Form(..., regex=r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$")],
     full_name: Annotated[str, Form(..., min_length=5, max_length=100)],
 ):
     """
