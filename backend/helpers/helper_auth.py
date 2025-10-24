@@ -11,7 +11,7 @@ from pwdlib import PasswordHash
 from starlette import status
 from starlette.requests import Request
 
-from backend.models import User, UserInDB, TokenData
+from backend.models import UserInDB, TokenData
 from backend.settings import get_settings
 from motor.motor_asyncio import AsyncIOMotorClient
 
