@@ -94,7 +94,7 @@ async def login_for_access_token(
 
     access_token = create_access_token(
         data={"sub": user.username},
-        expires_delta=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
+        expires_delta_in_min=timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES),
     )
 
     # TODO: Set cookie parameters dynamically depending on dev vs prod env

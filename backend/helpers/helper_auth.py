@@ -103,13 +103,13 @@ async def authenticate_user(username: str, password: str) -> UserInDB | None:
     return user
 
 
-def create_access_token(data: dict, expires_delta: timedelta | None = None):
+def create_access_token(data: dict, expires_delta_in_min: timedelta | None = None):
     """Create a JWT access token."""
     to_encode = data.copy()
 
-    expire = datetime.now(timezone.utc) + expires_delta
+    expire_timestamp = datetime.now(timezone.utc) + expires_delta_in_min
 
-    to_encode.update({"exp": expire})
+    to_encode.update({"exp": expire_timestamp})
 
     return jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
 
