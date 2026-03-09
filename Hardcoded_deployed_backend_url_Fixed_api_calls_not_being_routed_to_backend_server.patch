@@ -1,0 +1,397 @@
+Subject: [PATCH] Hardcoded deployed backend url
+Fixed api calls not being routed to backend server
+---
+Index: frontend/src/apiClient.js
+===================================================================
+diff --git a/frontend/src/apiClient.js b/frontend/src/apiClient.js
+new file mode 100644
+--- /dev/null	(revision 96b6827a0ec00cfd48e18219fc50a176f0bcb0bd)
++++ b/frontend/src/apiClient.js	(revision 96b6827a0ec00cfd48e18219fc50a176f0bcb0bd)
+@@ -0,0 +1,34 @@
++// src/apiClient.js
++const API_BASE_URL = 'https://capstone-1-project-1jhl.onrender.com';
++
++/**
++ * A wrapper for the fetch API to prepend the API base URL and handle credentials.
++ * @param {string} endpoint The API endpoint to call (e.g., '/users').
++ * @param {RequestInit} options The options for the fetch request.
++ * @returns {Promise<Response>} The fetch promise.
++ */
++const apiClient = (endpoint, options = {}) => {
++  // Ensure the endpoint starts with a slash
++  const formattedEndpoint = endpoint.startsWith('/') ? endpoint : `/${endpoint}`;
++  const url = `${API_BASE_URL}${formattedEndpoint}`;
++
++  const headers = {
++    ...options.headers,
++  };
++
++  // Do not set Content-Type for FormData, browser does it automatically
++  if (!(options.body instanceof FormData)) {
++    headers['Content-Type'] = 'application/json';
++  }
++
++  const newOptions = {
++    ...options,
++    headers,
++    // This is crucial for sending HttpOnly cookies on cross-origin requests
++    credentials: 'include',
++  };
++
++  return fetch(url, newOptions);
++};
++
++export default apiClient;
+Index: frontend/src/pages/Dashboard/Dashboard.jsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/Dashboard/Dashboard.jsx b/frontend/src/pages/Dashboard/Dashboard.jsx
+--- a/frontend/src/pages/Dashboard/Dashboard.jsx	(revision 14a02ae09610b97a06a00fe6dae1fd75a53a32ca)
++++ b/frontend/src/pages/Dashboard/Dashboard.jsx	(revision 1d2ac884472614b3ceb6683c1e350cc3622aa227)
+@@ -14,6 +14,7 @@
+   TextField,
+   Alert
+ } from '@mui/material';
++import apiClient from '../../apiClient';
+ 
+ const Dashboard = () => {
+   const navigate = useNavigate();
+@@ -40,10 +41,9 @@
+ 
+   const fetchUserDetails = useCallback(async () => {
+     try {
+-      const endpoint = '/api/auth/my-details'
+-      const response = await fetch(endpoint, {
++      const endpoint = '/auth/my-details'
++      const response = await apiClient(endpoint, {
+         method: 'GET',
+-        credentials: 'include',
+       });
+ 
+       if (!response.ok) {
+@@ -68,10 +68,9 @@
+ 
+   const fetchGroupDetails = useCallback(async () => {
+     try {
+-      const endpoint = '/api/groups/my-group'
+-      const response = await fetch(endpoint, {
++      const endpoint = '/groups/my-group'
++      const response = await apiClient(endpoint, {
+         method: 'GET',
+-        credentials: 'include',
+       });
+ 
+       if (response.ok) {
+@@ -96,10 +95,9 @@
+ 
+   const handleLogout = async () => {
+     try {
+-      const endpoint = '/api/auth/logout'
+-      await fetch(endpoint, {
++      const endpoint = '/auth/logout'
++      await apiClient(endpoint, {
+         method: 'POST',
+-        credentials: 'include',
+       });
+     } catch (err) {
+       console.error('Logout failed:', err);
+@@ -141,9 +139,8 @@
+       const formData = new FormData();
+       formData.append('group_name', groupName);
+ 
+-      const response = await fetch('/api/groups/create-group', {
++      const response = await apiClient('/groups/create-group', {
+         method: 'POST',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+@@ -171,9 +168,8 @@
+     setActionSuccess('');
+ 
+     try {
+-      const response = await fetch('/api/groups/leave-group', {
++      const response = await apiClient('/groups/leave-group', {
+         method: 'POST',
+-        credentials: 'include',
+       });
+ 
+       const data = await response.json();
+@@ -209,9 +205,8 @@
+       const formData = new FormData();
+       formData.append('email', inviteEmail);
+ 
+-      const response = await fetch('/api/groups/invite-user', {
++      const response = await apiClient('/groups/invite-user', {
+         method: 'POST',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+@@ -243,9 +238,8 @@
+       const formData = new FormData();
+       formData.append('new_username', newUsername);
+ 
+-      const response = await fetch('/api/auth/change-username', {
++      const response = await apiClient('/auth/change-username', {
+         method: 'POST',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+@@ -286,9 +280,8 @@
+       formData.append('old_password', oldPassword);
+       formData.append('new_password', newPassword);
+ 
+-      const response = await fetch('/api/auth/change-password', {
++      const response = await apiClient('/auth/change-password', {
+         method: 'POST',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+Index: frontend/src/pages/EmailVerification/EmailVerification.jsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/EmailVerification/EmailVerification.jsx b/frontend/src/pages/EmailVerification/EmailVerification.jsx
+--- a/frontend/src/pages/EmailVerification/EmailVerification.jsx	(revision 14a02ae09610b97a06a00fe6dae1fd75a53a32ca)
++++ b/frontend/src/pages/EmailVerification/EmailVerification.jsx	(revision 1d2ac884472614b3ceb6683c1e350cc3622aa227)
+@@ -3,6 +3,7 @@
+ import { useNavigate, useSearchParams } from 'react-router-dom'
+ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+ import ErrorIcon from '@mui/icons-material/Error'
++import apiClient from '../../apiClient'
+ 
+ export default function EmailVerification() {
+   const navigate = useNavigate()
+@@ -26,13 +27,12 @@
+       }
+ 
+       try {
+-        const endpoint = '/api/auth/verify-email'
++        const endpoint = '/auth/verify-email'
+         
+-        const res = await fetch(endpoint, {
++        const res = await apiClient(endpoint, {
+           method: 'POST',
+           headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+-          body: new URLSearchParams({ email_verification_token: token }).toString(),
+-          credentials: 'include',
++          body: new URLSearchParams({ email_verification_token: token }).toString()
+         })
+ 
+         const data = await res.json().catch(() => ({}))
+Index: frontend/src/pages/GroupManagement/GroupManagement.jsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/GroupManagement/GroupManagement.jsx b/frontend/src/pages/GroupManagement/GroupManagement.jsx
+--- a/frontend/src/pages/GroupManagement/GroupManagement.jsx	(revision 14a02ae09610b97a06a00fe6dae1fd75a53a32ca)
++++ b/frontend/src/pages/GroupManagement/GroupManagement.jsx	(revision 1d2ac884472614b3ceb6683c1e350cc3622aa227)
+@@ -39,6 +39,7 @@
+ import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+ import EditIcon from '@mui/icons-material/Edit';
+ import AddIcon from '@mui/icons-material/Add';
++import apiClient from '../../apiClient';
+ 
+ export default function GroupManagement() {
+   const navigate = useNavigate();
+@@ -81,9 +82,8 @@
+   // Fetch group details
+   const fetchGroupDetails = useCallback(async () => {
+     try {
+-      const response = await fetch('/api/groups/my-group', {
++      const response = await apiClient('/groups/my-group', {
+         method: 'GET',
+-        credentials: 'include',
+       });
+ 
+       if (response.ok) {
+@@ -113,9 +113,8 @@
+   // Fetch chores
+   const fetchChores = useCallback(async () => {
+     try {
+-      const response = await fetch('/api/chores/chores', {
++      const response = await apiClient('/chores/chores', {
+         method: 'GET',
+-        credentials: 'include',
+       });
+ 
+       if (response.ok) {
+@@ -130,9 +129,8 @@
+   // Fetch recurring chores
+   const fetchRecurringChores = useCallback(async () => {
+     try {
+-      const response = await fetch('/api/chores/recurring-chores/', {
++      const response = await apiClient('/chores/recurring-chores/', {
+         method: 'GET',
+-        credentials: 'include',
+       });
+ 
+       if (response.ok) {
+@@ -170,9 +168,8 @@
+         formData.append('assigned_username', assignedUsername);
+       }
+ 
+-      const response = await fetch('/api/chores/create-chore', {
++      const response = await apiClient('/chores/create-chore', {
+         method: 'POST',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+@@ -196,9 +193,8 @@
+   // Handle complete chore
+   const handleCompleteChore = async (choreId) => {
+     try {
+-      const response = await fetch(`/api/chores/complete-chore/${choreId}`, {
++      const response = await apiClient(`/chores/complete-chore/${choreId}`, {
+         method: 'POST',
+-        credentials: 'include',
+       });
+ 
+       const data = await response.json();
+@@ -219,9 +215,8 @@
+     if (!confirm('Are you sure you want to delete this chore?')) return;
+ 
+     try {
+-      const response = await fetch(`/api/chores/delete-chore/${choreId}`, {
++      const response = await apiClient(`/chores/delete-chore/${choreId}`, {
+         method: 'DELETE',
+-        credentials: 'include',
+       });
+ 
+       const data = await response.json();
+@@ -276,9 +271,8 @@
+       formData.append('rrule_str', buildRRule());
+       formData.append('start_date_str', new Date(startDate).toISOString());
+ 
+-      const response = await fetch('/api/chores/recurring-chores/', {
++      const response = await apiClient('/chores/recurring-chores/', {
+         method: 'POST',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+@@ -314,9 +308,8 @@
+       if (editRecurringDescription) formData.append('chore_description', editRecurringDescription);
+       formData.append('is_active', editRecurringActive);
+ 
+-      const response = await fetch(`/api/chores/recurring-chores/${editingRecurringChore._id}`, {
++      const response = await apiClient(`/chores/recurring-chores/${editingRecurringChore._id}`, {
+         method: 'PUT',
+-        credentials: 'include',
+         body: formData,
+       });
+ 
+@@ -340,9 +333,8 @@
+     if (!confirm('Are you sure you want to delete this recurring chore? All associated chores will be deleted.')) return;
+ 
+     try {
+-      const response = await fetch(`/api/chores/recurring-chores/${recurringChoreId}`, {
++      const response = await apiClient(`/chores/recurring-chores/${recurringChoreId}`, {
+         method: 'DELETE',
+-        credentials: 'include',
+       });
+ 
+       const data = await response.json();
+Index: frontend/src/pages/JoinGroup/JoinGroup.jsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/JoinGroup/JoinGroup.jsx b/frontend/src/pages/JoinGroup/JoinGroup.jsx
+--- a/frontend/src/pages/JoinGroup/JoinGroup.jsx	(revision 14a02ae09610b97a06a00fe6dae1fd75a53a32ca)
++++ b/frontend/src/pages/JoinGroup/JoinGroup.jsx	(revision 1d2ac884472614b3ceb6683c1e350cc3622aa227)
+@@ -3,6 +3,7 @@
+ import { useNavigate, useSearchParams } from 'react-router-dom'
+ import CheckCircleIcon from '@mui/icons-material/CheckCircle'
+ import ErrorIcon from '@mui/icons-material/Error'
++import apiClient from '../../apiClient'
+ 
+ export default function JoinGroup() {
+   const navigate = useNavigate()
+@@ -27,15 +28,14 @@
+       }
+ 
+       try {
+-        const endpoint = '/api/groups/join-group'
++        const endpoint = '/groups/join-group'
+         
+         const formData = new FormData()
+         formData.append('invite_token', token)
+ 
+-        const res = await fetch(endpoint, {
++        const res = await apiClient(endpoint, {
+           method: 'POST',
+           body: formData,
+-          credentials: 'include',
+         })
+ 
+         const data = await res.json().catch(() => ({}))
+Index: frontend/src/pages/Login/Login.jsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/Login/Login.jsx b/frontend/src/pages/Login/Login.jsx
+--- a/frontend/src/pages/Login/Login.jsx	(revision 14a02ae09610b97a06a00fe6dae1fd75a53a32ca)
++++ b/frontend/src/pages/Login/Login.jsx	(revision 1d2ac884472614b3ceb6683c1e350cc3622aa227)
+@@ -1,6 +1,7 @@
+ import { useState } from 'react'
+ import { Container, Box, Typography, TextField, Button, Stack, Alert, Snackbar } from '@mui/material'
+ import { useNavigate } from 'react-router-dom'
++import apiClient from '../../apiClient'
+ 
+ export default function Login() {
+   const navigate = useNavigate()
+@@ -15,13 +16,12 @@
+     setError('')
+     setSubmitting(true)
+     try {
+-      const endpoint = '/api/auth/login'
++      const endpoint = '/auth/login'
+ 
+-      const res = await fetch(endpoint, {
++      const res = await apiClient(endpoint, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+-        body: new URLSearchParams({ username, password }).toString(),
+-        credentials: 'include' // if backend uses cookies/auth
++        body: new URLSearchParams({ username, password }).toString()
+       })
+ 
+       if (!res.ok) {
+Index: frontend/src/pages/Signup/Signup.jsx
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/frontend/src/pages/Signup/Signup.jsx b/frontend/src/pages/Signup/Signup.jsx
+--- a/frontend/src/pages/Signup/Signup.jsx	(revision 14a02ae09610b97a06a00fe6dae1fd75a53a32ca)
++++ b/frontend/src/pages/Signup/Signup.jsx	(revision 1d2ac884472614b3ceb6683c1e350cc3622aa227)
+@@ -1,6 +1,7 @@
+ import { useState } from 'react'
+ import { Container, Box, Typography, TextField, Button, Stack, Alert, Snackbar } from '@mui/material'
+ import { useNavigate } from 'react-router-dom'
++import apiClient from '../../apiClient'
+ 
+ export default function Signup() {
+   const navigate = useNavigate()
+@@ -17,9 +18,9 @@
+     setError('')
+     setSubmitting(true)
+     try {
+-      const endpoint = '/api/auth/register'
++      const endpoint = '/auth/register'
+       
+-      const res = await fetch(endpoint, {
++      const res = await apiClient(endpoint, {
+         method: 'POST',
+         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+         body: new URLSearchParams({ username, full_name: fullName, email, password }).toString(),
