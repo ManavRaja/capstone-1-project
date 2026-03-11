@@ -1,0 +1,27 @@
+{
+  "draft_type": "pr",
+  "issue_draft": null,
+  "pr_draft": {
+    "title": "Fix recurring chore rotation index and redundant chore creation (#35)",
+    "summary": "This PR addresses Issue #35 by fixing the off-by-one error in recurring chore user rotation. It ensures that the first user in the assignment list is the first to receive a chore. It also removes a bug where multiple chores were created immediately upon establishing a recurring schedule, which cluttered user chore lists. The Celery worker logic has been audited to confirm compatibility with the new -1 initialization index and now includes a safety check for empty user lists to prevent division-by-zero errors.",
+    "files_affected": [
+      "backend/models.py",
+      "backend/routes/chores.py",
+      "backend/celery_worker.py"
+    ],
+    "behavior_change": "- **Before**: New recurring chores had `last_assigned_user_index` initialized to `0`. On the first run, the Celery worker incremented this to `1`, causing the user at index `0` to be skipped. Additionally, creating a recurring chore immediately spawned individual chores for *everyone* in the rotation list, which contradicted the \"one-by-one\" rotation goal.\n- **After**: New recurring chores initialize `last_assigned_user_index` to `-1`. The first worker run increments it to `0`, correctly assigning the first chore to the first user in the list. The redundant immediate creation of chores for all users during setup is removed, ensuring chores only appear when they are actually due according to the schedule.",
+    "test_plan": "### Automated Tests\nAdded a new test file `backend/tests/test_chore_rotation.py` with the following test cases:\n1. `test_rotation_index_initialization`: Verifies that a new `RecurringChore` is created with index `-1`.\n2. `test_worker_first_assignment`: Mocks a recurring chore and verifies the worker sets `last_assigned_user_index` to `0` and assigns the first user on the first run.\n3. `test_rotation_wrap_around`: Verifies that index `1` wraps back to `0` for a 2-user list.\n4. `test_empty_user_list_safety`: Verifies the worker does not crash if a recurring chore has an empty `assigned_user_ids` list.\n\n### Manual Verification\n1. **Reset Database**: Clear the `recurring_chores` and `chores` collections.\n2. **Start Services**: \n   - Backend: `fastapi dev backend/main.py`\n   - Worker: `celery -A backend.celery_app worker --loglevel=info`\n3. **Create Chore**: Send a POST request to `/chores/recurring-chores/` with `assigned_usernames=[\"user_a\", \"user_b\"]` and a schedule.\n4. **Inspect DB**: Verify `last_assigned_user_index` is `-1` and *no* individual chores are created yet.\n5. **Trigger Worker**: Execute `celery -A backend.celery_app call backend.celery_worker.process_recurring_chores`.\n6. **Verify Assignment**: Check the `chores` collection; a new chore should be assigned to `user_a`. `last_assigned_user_index` in `recurring_chores` should now be `0`.\n7. **Repeat**: Trigger the worker again (after simulating time pass or modifying `next_due_date`) and verify `user_b` is assigned next.",
+    "risk_level": "low"
+  },
+  "reflection": {
+    "verdict": "PASS",
+    "issues_found": [
+      "The 'Behavior Change' section mentions a safety check for empty user lists, but does not specify the expected outcome when this occurs (e.g., does it skip the chore, log an error, or retry?).",
+      "Manual Verification Step 7 ('Repeat') is slightly vague regarding the simulation of time. It would be more actionable to provide a specific database command or API call to advance the `next_due_date` for testing."
+    ],
+    "requires_revision": false
+  },
+  "repo": "The-Rolla-Oreo/capstone-1-project",
+  "base_branch": "main",
+  "head_branch": "issue35-solution"
+}
